@@ -1,10 +1,9 @@
-  
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>نظام الرواتب V14.0 - نسخة مصححة</title>
+    <title>نظام الرواتب V14.0 - النسخة المصححة</title>
     <style>
         :root {
             --primary: #0D47A1; --bg: #ECEFF1; --surface: #FFFFFF;
@@ -83,12 +82,13 @@
     </div>
 </div>
 
-<div id="attModal" class="modal"><div class="modal-content"><h3 id="attEmpName" align="center"></h3><div id="boxIn"><label>وقت الحضور:</label><div class="row-now"><input type="time" id="tIn" value="08:00"><button class="btn-now" onclick="setNow('tIn')">🕒 الآن</button></div><button class="btn-main" onclick="saveAtt('in')">حفظ الحضور</button></div><div id="boxOut" style="display:none"><label>وقت الانصراف:</label><div class="row-now"><input type="time" id="tOut" value="16:00"><button class="btn-now" onclick="setNow('tOut')">🕒 الآن</button></div><button class="btn-main" onclick="saveAtt('out')" style="background:var(--success)">إتمام اليوم</button></div><button class="btn-main" style="background:var(--danger)" onclick="saveAtt('absent')">تسجيل غياب</button><button onclick="closeM('attModal')" style="background:#eee">إغلاق</button></div></div>
+<div id="attModal" class="modal"><div class="modal-content"><h3 id="attEmpName" align="center"></h3><div id="boxIn"><label>وقت الحضور:</label><div class="row-now"><input type="time" id="tIn" value="08:00"><button class="btn-now" onclick="setNow('tIn')">🕒 الآن</button></div><button class="btn-main" onclick="saveAtt('in')">حفظ الحضور</button></div><div id="boxOut" style="display:none"><label>وقت الانصراف:</label><div class="row-now"><input type="time" id="tOut" value="18:00"><button class="btn-now" onclick="setNow('tOut')">🕒 الآن</button></div><button class="btn-main" onclick="saveAtt('out')" style="background:var(--success)">إتمام اليوم</button></div><button class="btn-main" style="background:var(--danger)" onclick="saveAtt('absent')">تسجيل غياب</button><button onclick="closeM('attModal')" style="background:#eee">إغلاق</button></div></div>
 <div id="adminEditModal" class="modal"><div class="modal-content"><h3>🛠️ تعديل السجل</h3><label>دخول:</label><div class="row-now"><input type="time" id="editIn"><button class="btn-now" onclick="setNow('editIn')">🕒</button></div><label>خروج:</label><div class="row-now"><input type="time" id="editOut"><button class="btn-now" onclick="setNow('editOut')">🕒</button></div><button class="btn-main" onclick="confirmAdminEdit()">تأكيد التعديل</button><button class="btn-main" style="background:var(--danger)" onclick="saveAtt('deleteAdmin')">🗑️ حذف</button><button onclick="closeM('adminEditModal')" style="background:#eee">رجوع</button></div></div>
 <div id="advancesModal" class="modal"><div class="modal-content"><h3>💰 سجل التسبيقات</h3><div id="advListArea" style="max-height: 300px; overflow-y: auto;"></div><button onclick="closeM('advancesModal')" style="background:#eee">إغلاق</button></div></div>
 <div id="settingsModal" class="modal"><div class="modal-content"><h3>⚙️ الإعدادات</h3><div id="eList" style="max-height:150px; overflow-y:auto; border-bottom:1px solid #eee"></div><input id="newE" placeholder="اسم العامل"><input id="newR" type="number" placeholder="الأجر اليومي"><button class="btn-main" onclick="addE()">إضافة عامل</button><hr><label>رمز الدخول:</label><input type="password" id="p1" maxlength="4"><button onclick="updatePin('app')">تحديث الرمز</button><button onclick="closeM('settingsModal')" style="background:#eee">إغلاق</button></div></div>
 
 <script>
+    // لتثبيت العمال، ضعهم داخل مصفوفة emps هنا: emps: [{id:1, name:"اسم", rate:5000}]
     let appData = { emps: [], att: {}, pin: "0000", adminPin: "1234", advances: {} };
     const MASTER = "10031945";
     let pinIn = "", currDate = new Date(), sel = null, target = "login", fails = 0, locked = false;
@@ -135,11 +135,12 @@
     function clearPin() { pinIn = ""; updateDots(); }
     function setNow(id) { let n = new Date(); document.getElementById(id).value = n.getHours().toString().padStart(2,'0') + ":" + n.getMinutes().toString().padStart(2,'0'); }
 
-    // دالة تنسيق الوقت المصححة
+    // دالة تنسيق الوقت المصححة لنظام 12 ساعة
     function formatTime(m) {
-        // إذا كان الفارق سالباً (من الصباح للمساء بنظام 12 ساعة) نزيد 12 ساعة
-        if (m < 0) m += 720; 
-        return Math.floor(m/60) + "س " + Math.round(m%60) + "د";
+        if (m < 0) m += 720; // إضافة 12 ساعة إذا كان الفارق سالباً
+        let h = Math.floor(m/60);
+        let min = Math.round(m%60);
+        return h + "س " + min + "د";
     }
 
     function render() {
@@ -190,11 +191,15 @@
             document.getElementById('boxIn').style.display='none'; document.getElementById('boxOut').style.display='block';
         } else if(type === 'out') {
             let d = appData.att[sel.key];
-            let sArr = d.tIn.split(':'), eArr = document.getElementById('tOut').value.split(':');
+            let tOutVal = document.getElementById('tOut').value;
+            let sArr = d.tIn.split(':'), eArr = tOutVal.split(':');
             let sMin = parseInt(sArr[0])*60 + parseInt(sArr[1]);
             let eMin = parseInt(eArr[0])*60 + parseInt(eArr[1]);
-            d.tOut = document.getElementById('tOut').value; 
-            d.mTotal = eMin - sMin;
+            
+            let diff = eMin - sMin;
+            if (diff <= 0) diff += 720; // تصحيح للدوام المسائي
+
+            d.tOut = tOutVal; d.mTotal = diff;
             closeM('attModal');
         } else if(type === 'absent') { appData.att[sel.key] = { abs: true }; closeM('attModal'); }
         else if(type === 'deleteAdmin') { delete appData.att[sel.key]; closeM('adminEditModal'); }
@@ -203,7 +208,7 @@
 
     function openAdminEdit(data) {
         document.getElementById('editIn').value = data.tIn || "08:00";
-        document.getElementById('editOut').value = data.tOut || "16:00";
+        document.getElementById('editOut').value = data.tOut || "18:00";
         document.getElementById('adminEditModal').style.display='flex';
     }
 
@@ -212,7 +217,11 @@
         let sArr = i.split(':'), eArr = o.split(':');
         let sMin = parseInt(sArr[0])*60 + parseInt(sArr[1]);
         let eMin = parseInt(eArr[0])*60 + parseInt(eArr[1]);
-        appData.att[sel.key] = { tIn: i, tOut: o, mTotal: eMin - sMin, rate: sel.e.rate };
+        
+        let diff = eMin - sMin;
+        if (diff <= 0) diff += 720;
+
+        appData.att[sel.key] = { tIn: i, tOut: o, mTotal: diff, rate: sel.e.rate };
         save(); closeM('adminEditModal');
     }
 
@@ -282,8 +291,4 @@
             reportHtml += `<tr><td>${e.name}</td><td>${c}</td><td>${formatTime(tm)}</td><td>${Math.round(ern)}</td><td>${ta}</td><td>${Math.round(ern-ta)}</td></tr>`;
         });
         reportHtml += `</tbody></table></div>`;
-        const win = window.open('', '_blank'); win.document.write(reportHtml); win.document.close(); win.print();
-    }
-</script>
-</body>
-</html>
+        const win
