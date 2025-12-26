@@ -1,4 +1,5 @@
- <!DOCTYPE html>
+ 
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -333,4 +334,47 @@
         let days = new Date(currDate.getFullYear(), currDate.getMonth()+1, 0).getDate();
         for(let d=1; d<=days; d++) {
             let key = `${currDate.getFullYear()}-${currDate.getMonth()}-${d}-${e.id}`;
-            let record = appData.
+            let record = appData.att[key];
+            if(record && record.mTotal) {
+                let r = record.rate || e.rate;
+                if(!rateGroups[r]) rateGroups[r] = { mins: 0, days: 0 };
+                rateGroups[r].mins += record.mTotal; rateGroups[r].days += 1;
+                totalEarned += (record.mTotal / 480) * r;
+            }
+        }
+        let ta = (appData.advances[mk] && appData.advances[mk][e.id]) ? appData.advances[mk][e.id].reduce((s,i)=>s+i.val, 0) : 0;
+        let msg = `👤 كشف راتب: *${e.name}*\n📅 الشهر: ${document.getElementById('monthLabel').innerText}\n`;
+        msg += `--------------------------\n`;
+        for (let r in rateGroups) { msg += `💰 بسعر ${r} دج: (${rateGroups[r].days} يوم) - ${formatTime(rateGroups[r].mins)}\n`; }
+        msg += `--------------------------\n`;
+        msg += `💵 إجمالي المستحق: ${Math.round(totalEarned)} دج\n📉 إجمالي التسبيقات: ${ta} دج\n💰 الصافي النهائي: *${Math.round(totalEarned - ta)} دج*`;
+        if (navigator.share) navigator.share({ text: msg }).catch(console.error);
+        else window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function printReport() {
+        let mk = `${currDate.getFullYear()}-${currDate.getMonth()}`;
+        let reportHtml = `<div dir="rtl" style="font-family: Arial; padding: 20px;"><h2 style="text-align:center">كشف رواتب: ${document.getElementById('monthLabel').innerText}</h2><table border="1" style="width:100%; border-collapse:collapse; text-align:center;"><thead><tr><th>العامل</th><th>التفصيل (الأيام والأجر)</th><th>المستحق</th><th>التسبيقات</th><th>الصافي</th></tr></thead><tbody>`;
+        appData.emps.forEach(e => {
+            let rateGroups = {}; let totalEarned = 0;
+            let days = new Date(currDate.getFullYear(), currDate.getMonth()+1, 0).getDate();
+            for(let d=1; d<=days; d++) {
+                let key = `${currDate.getFullYear()}-${currDate.getMonth()}-${d}-${e.id}`;
+                let record = appData.att[key];
+                if(record && record.mTotal) {
+                    let r = record.rate || e.rate;
+                    if(!rateGroups[r]) rateGroups[r] = { mins: 0, days: 0 };
+                    rateGroups[r].mins += record.mTotal; rateGroups[r].days += 1;
+                    totalEarned += (record.mTotal / 480) * r;
+                }
+            }
+            let detail = ""; for (let r in rateGroups) { detail += `${rateGroups[r].days} يوم بـ ${r} دج<br>`; }
+            let ta = (appData.advances[mk] && appData.advances[mk][e.id]) ? appData.advances[mk][e.id].reduce((s,i)=>s+i.val, 0) : 0;
+            reportHtml += `<tr><td>${e.name}</td><td>${detail || '-'}</td><td>${Math.round(totalEarned)}</td><td>${ta}</td><td>${Math.round(totalEarned-ta)}</td></tr>`;
+        });
+        reportHtml += `</tbody></table></div>`;
+        const win = window.open('', '_blank'); win.document.write(reportHtml); win.document.close(); win.print();
+    }
+</script>
+</body>
+</html>
