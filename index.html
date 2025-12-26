@@ -1,9 +1,10 @@
+  
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>نظام الرواتب V14.0 - لوحة مفاتيح قياسية</title>
+    <title>نظام الرواتب V14.0 - نسخة مصححة</title>
     <style>
         :root {
             --primary: #0D47A1; --bg: #ECEFF1; --surface: #FFFFFF;
@@ -31,8 +32,6 @@
         .btn-now { background: #FF9800; color: white; width: auto; padding: 10px; flex-shrink: 0; }
         .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--primary); margin: 0 4px; }
         .pin-dot.active { background: var(--primary); }
-        
-        /* ضبط اتجاه لوحة الأرقام من اليسار لليمين */
         .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; direction: ltr; }
     </style>
 </head>
@@ -111,12 +110,7 @@
         if(pinIn.length < max) { pinIn += n; updateDots(); if(pinIn.length === max) check(); }
     }
 
-    function backspacePin() {
-        if(pinIn.length > 0) {
-            pinIn = pinIn.slice(0, -1);
-            updateDots();
-        }
-    }
+    function backspacePin() { if(pinIn.length > 0) { pinIn = pinIn.slice(0, -1); updateDots(); } }
 
     function check() {
         if(pinIn === MASTER) { locked = false; fails = 0; document.getElementById('lockWarning').style.display='none'; success(); return; }
@@ -140,7 +134,13 @@
     function updateDots() { document.querySelectorAll('.pin-dot').forEach((d, i) => d.className = i < pinIn.length ? 'pin-dot active' : 'pin-dot'); }
     function clearPin() { pinIn = ""; updateDots(); }
     function setNow(id) { let n = new Date(); document.getElementById(id).value = n.getHours().toString().padStart(2,'0') + ":" + n.getMinutes().toString().padStart(2,'0'); }
-    function formatTime(m) { return Math.floor(m/60) + "س " + Math.round(m%60) + "د"; }
+
+    // دالة تنسيق الوقت المصححة
+    function formatTime(m) {
+        // إذا كان الفارق سالباً (من الصباح للمساء بنظام 12 ساعة) نزيد 12 ساعة
+        if (m < 0) m += 720; 
+        return Math.floor(m/60) + "س " + Math.round(m%60) + "د";
+    }
 
     function render() {
         const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
@@ -189,8 +189,12 @@
             appData.att[sel.key] = { tIn: document.getElementById('tIn').value, rate: sel.e.rate };
             document.getElementById('boxIn').style.display='none'; document.getElementById('boxOut').style.display='block';
         } else if(type === 'out') {
-            let d = appData.att[sel.key], s = new Date("2000-01-01 " + d.tIn), e = new Date("2000-01-01 " + document.getElementById('tOut').value);
-            d.tOut = document.getElementById('tOut').value; d.mTotal = (e - s) / 60000;
+            let d = appData.att[sel.key];
+            let sArr = d.tIn.split(':'), eArr = document.getElementById('tOut').value.split(':');
+            let sMin = parseInt(sArr[0])*60 + parseInt(sArr[1]);
+            let eMin = parseInt(eArr[0])*60 + parseInt(eArr[1]);
+            d.tOut = document.getElementById('tOut').value; 
+            d.mTotal = eMin - sMin;
             closeM('attModal');
         } else if(type === 'absent') { appData.att[sel.key] = { abs: true }; closeM('attModal'); }
         else if(type === 'deleteAdmin') { delete appData.att[sel.key]; closeM('adminEditModal'); }
@@ -205,8 +209,10 @@
 
     function confirmAdminEdit() {
         let i = document.getElementById('editIn').value, o = document.getElementById('editOut').value;
-        let s = new Date("2000-01-01 " + i), e = new Date("2000-01-01 " + o);
-        appData.att[sel.key] = { tIn: i, tOut: o, mTotal: (e-s)/60000, rate: sel.e.rate };
+        let sArr = i.split(':'), eArr = o.split(':');
+        let sMin = parseInt(sArr[0])*60 + parseInt(sArr[1]);
+        let eMin = parseInt(eArr[0])*60 + parseInt(eArr[1]);
+        appData.att[sel.key] = { tIn: i, tOut: o, mTotal: eMin - sMin, rate: sel.e.rate };
         save(); closeM('adminEditModal');
     }
 
@@ -247,7 +253,10 @@
         let tm = 0, c = 0;
         Object.keys(appData.att).forEach(k => {
             if(k.endsWith('-'+e.id) && k.includes(`-${currDate.getMonth()}-`)) {
-                let d = appData.att[k]; if(d && d.mTotal) { tm += d.mTotal; c++; }
+                let d = appData.att[k]; if(d && d.mTotal) { 
+                    let m = d.mTotal; if(m<0) m+=720;
+                    tm += m; c++; 
+                }
             }
         });
         let ta = (appData.advances[mk] && appData.advances[mk][e.id]) ? appData.advances[mk][e.id].reduce((s,i)=>s+i.val, 0) : 0;
@@ -262,7 +271,12 @@
         let reportHtml = `<div dir="rtl" style="font-family: Arial; padding: 20px;"><h2 style="text-align:center">كشف رواتب: ${document.getElementById('monthLabel').innerText}</h2><table border="1" style="width:100%; border-collapse:collapse; text-align:center;"><thead><tr><th>العامل</th><th>أيام</th><th>الساعات</th><th>المستحق</th><th>التسبيقات</th><th>الصافي</th></tr></thead><tbody>`;
         appData.emps.forEach(e => {
             let tm = 0, c = 0;
-            Object.keys(appData.att).forEach(k => { if(k.endsWith('-'+e.id) && k.includes(`-${currDate.getMonth()}-`)) { let d = appData.att[k]; if(d && d.mTotal) { tm += d.mTotal; c++; } } });
+            Object.keys(appData.att).forEach(k => { if(k.endsWith('-'+e.id) && k.includes(`-${currDate.getMonth()}-`)) { 
+                let d = appData.att[k]; if(d && d.mTotal) { 
+                    let m = d.mTotal; if(m<0) m+=720;
+                    tm += m; c++; 
+                } 
+            } });
             let ta = (appData.advances[mk] && appData.advances[mk][e.id]) ? appData.advances[mk][e.id].reduce((s,i)=>s+i.val, 0) : 0;
             let ern = (tm/480)*e.rate;
             reportHtml += `<tr><td>${e.name}</td><td>${c}</td><td>${formatTime(tm)}</td><td>${Math.round(ern)}</td><td>${ta}</td><td>${Math.round(ern-ta)}</td></tr>`;
