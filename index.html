@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>نظام الرواتب V20.1 - النسخة المتكاملة</title>
+    <title>نظام الرواتب V20.2</title>
     <style>
         :root { --primary: #0D47A1; --bg: #ECEFF1; --surface: #FFFFFF; --success: #2E7D32; --danger: #C62828; --radius: 12px; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -27,38 +27,50 @@
         .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--primary); margin: 0 4px; }
         .pin-dot.active { background: var(--primary); }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; direction: ltr; }
+        
+        /* تنسيق خاص للطباعة */
+        #printArea { display: none; background: white; padding: 20px; }
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { display: block; position: absolute; left: 0; top: 0; width: 100%; }
+        }
     </style>
 </head>
 <body>
 
-<header>
-    <div style="display:flex; justify-content:space-between; align-items:center">
-        <b style="color:var(--primary)">نظام الرواتب V20.1</b>
-        <span id="lockStatus" style="font-size:0.8rem; color:red">🔒 محمي</span>
-    </div>
-</header>
+<div id="mainUI">
+    <header>
+        <div style="display:flex; justify-content:space-between; align-items:center">
+            <b style="color:var(--primary)">نظام الرواتب V20.2</b>
+            <span id="lockStatus" style="font-size:0.8rem; color:red">🔒 محمي</span>
+        </div>
+    </header>
 
-<div id="contentArea" style="display:none">
-    <div style="display:flex; justify-content:space-between; padding:10px; align-items:center">
-        <button onclick="changeMonth(-1)" style="width:40px; background:#ddd">◀</button>
-        <b id="monthLabel"></b>
-        <button onclick="changeMonth(1)" style="width:40px; background:#ddd">▶</button>
-    </div>
-    
-    <div class="calendar-container"><div id="calendarGrid" class="calendar-grid"></div></div>
-    
-    <div style="padding:15px; background: #fff; margin: 10px; border-radius: var(--radius);">
-        <select id="empSelect"></select>
-        <button onclick="sendSelectedReport()" style="background:#00796B; color:white">ارسال عبر واتسآب</button>
-    </div>
+    <div id="contentArea" style="display:none">
+        <div style="display:flex; justify-content:space-between; padding:10px; align-items:center">
+            <button onclick="changeMonth(-1)" style="width:40px; background:#ddd">◀</button>
+            <b id="monthLabel"></b>
+            <button onclick="changeMonth(1)" style="width:40px; background:#ddd">▶</button>
+        </div>
+        
+        <div class="calendar-container"><div id="calendarGrid" class="calendar-grid"></div></div>
+        
+        <div style="padding:15px; background: #fff; margin: 10px; border-radius: var(--radius);">
+            <select id="empSelect"></select>
+            <button onclick="sendSelectedReport()" style="background:#00796B; color:white">ارسال عبر واتسآب</button>
+        </div>
 
-    <div style="padding:15px; display:grid; grid-template-columns:1fr 1fr; gap:10px">
-        <button class="btn-main" onclick="openAdvances()">💰 التسبيقات</button>
-        <button class="btn-main" onclick="printReport()" style="background:var(--success)">📄 طباعة PDF</button>
-        <button class="btn-main" onclick="openSettings()" style="background:#546E7A;">⚙️ الإعدادات</button>
-        <button class="btn-main" onclick="clearAttendanceOnly()" style="background:var(--danger);">🗑️ مسح التأشير</button>
+        <div style="padding:15px; display:grid; grid-template-columns:1fr 1fr; gap:10px">
+            <button class="btn-main" onclick="openAdvances()">💰 التسبيقات</button>
+            <button class="btn-main" onclick="printReport()" style="background:var(--success)">📄 طباعة PDF</button>
+            <button class="btn-main" onclick="openSettings()" style="background:#546E7A;">⚙️ الإعدادات</button>
+            <button class="btn-main" onclick="clearAttendanceOnly()" style="background:var(--danger);">🗑️ مسح التأشير</button>
+        </div>
     </div>
 </div>
+
+<div id="printArea"></div>
 
 <div id="pinModal" class="modal" style="display:flex">
     <div class="modal-content" align="center">
@@ -77,23 +89,13 @@
             <label style="font-size:0.8rem;">الأجر اليومي لهذا اليوم:</label>
             <div class="row-now"><input type="number" id="currentRateInput"><button onclick="updateRate()" style="background:var(--primary); color:white; padding:5px; font-size:11px;">اعتماد</button></div>
         </div>
-        
         <label>وقت الحضور:</label>
-        <div class="row-now">
-            <input type="time" id="tIn">
-            <button class="btn-now" onclick="setNowTime('tIn')">الآن</button>
-        </div>
+        <div class="row-now"><input type="time" id="tIn"><button class="btn-now" onclick="setNowTime('tIn')">الآن</button></div>
         <button class="btn-main" onclick="processAtt('saveIn')">حفظ الحضور فقط</button>
-
         <hr>
-
         <label>وقت الانصراف:</label>
-        <div class="row-now">
-            <input type="time" id="tOut">
-            <button class="btn-now" onclick="setNowTime('tOut')">الآن</button>
-        </div>
+        <div class="row-now"><input type="time" id="tOut"><button class="btn-now" onclick="setNowTime('tOut')">الآن</button></div>
         <button class="btn-main" style="background:var(--success)" onclick="processAtt('saveOut')">إتمام اليوم (حساب الساعات)</button>
-
         <button class="btn-main" style="background:var(--danger)" onclick="processAtt('absent')">تسجيل غياب</button>
         <button class="btn-main" style="background:#666; display:none;" id="delBtn" onclick="processAtt('delete')">حذف السجل</button>
         <button onclick="closeM('attModal')" style="background:#eee">إغلاق</button>
@@ -101,7 +103,7 @@
 </div>
 
 <div id="settingsModal" class="modal"><div class="modal-content"><h3>⚙️ الإعدادات</h3><div id="eList" style="max-height:150px; overflow-y:auto;"></div><input id="newE" placeholder="اسم العامل"><input id="newR" type="number" placeholder="الأجر"><button class="btn-main" onclick="addE()">+ إضافة</button><hr><input type="password" id="p1" placeholder="رمز جديد" maxlength="4"><button onclick="updatePin()">تحديث الرمز</button><button onclick="closeM('settingsModal')" style="background:#eee">إغلاق</button></div></div>
-<div id="advancesModal" class="modal"><div class="modal-content"><h3>💰 التسبيقات</h3><div id="advListArea" style="max-height: 300px; overflow-y: auto;"></div><button onclick="closeM('advancesModal')" style="background:#eee">إغلاق</button></div></div>
+<div id="advancesModal" class="modal"><div class="modal-content"><h3>💰 سجل التسبيقات</h3><div id="advListArea" style="max-height: 300px; overflow-y: auto;"></div><button onclick="closeM('advancesModal')" style="background:#eee">إغلاق</button></div></div>
 
 <script>
     let appData = { emps: [], att: {}, pin: "0000", advances: {} };
@@ -171,25 +173,25 @@
         let data = appData.att[key] || {};
         document.getElementById('attEmpName').innerText = sel.e.name;
         document.getElementById('currentRateInput').value = data.rate || sel.e.rate;
-        document.getElementById('tIn').value = data.tIn || "08:00";
-        document.getElementById('tOut').value = data.tOut || "06:00";
+        document.getElementById('tIn').value = data.tIn || "";
+        document.getElementById('tOut').value = data.tOut || "";
         document.getElementById('delBtn').style.display = data.tIn || data.abs ? 'block' : 'none';
         document.getElementById('attModal').style.display = 'flex';
     }
 
     function processAtt(type) {
         let rate = parseFloat(document.getElementById('currentRateInput').value);
-        if(type === 'saveIn') {
-            appData.att[sel.key] = { tIn: document.getElementById('tIn').value, rate: rate };
-        } else if(type === 'saveOut') {
+        if(type === 'saveIn') appData.att[sel.key] = { tIn: document.getElementById('tIn').value, rate: rate };
+        else if(type === 'saveOut') {
             let tIn = document.getElementById('tIn').value, tOut = document.getElementById('tOut').value;
+            if(!tIn) { alert("يجب تسجيل الحضور أولاً"); return; }
             appData.att[sel.key] = { tIn, tOut, mTotal: getDiff(tIn, tOut), rate: rate };
-        } else if(type === 'absent') { appData.att[sel.key] = { abs: true }; }
-        else if(type === 'delete') { delete appData.att[sel.key]; }
+        } else if(type === 'absent') appData.att[sel.key] = { abs: true };
+        else if(type === 'delete') delete appData.att[sel.key];
         save(); closeM('attModal');
     }
 
-    function updateRate() { sel.e.rate = parseFloat(document.getElementById('currentRateInput').value); save(); alert("تم التحديث بنجاح"); }
+    function updateRate() { sel.e.rate = parseFloat(document.getElementById('currentRateInput').value); save(); alert("تم التحديث"); }
     function save() { localStorage.setItem('salary_final_v20', JSON.stringify(appData)); render(); }
     function closeM(id) { document.getElementById(id).style.display='none'; }
     function changeMonth(n) { currDate.setMonth(currDate.getMonth()+n); render(); }
@@ -206,9 +208,14 @@
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
     }
 
+    // إصلاح الطباعة - الطباعة في نفس الصفحة لتجاوز حظر النوافذ المنبثقة
     function printReport() {
         let mk = `${currDate.getFullYear()}-${currDate.getMonth()}`;
-        let html = `<div dir="rtl" style="font-family:Arial;padding:20px;"><h2 align="center">كشف رواتب: ${document.getElementById('monthLabel').innerText}</h2><table border="1" width="100%" style="border-collapse:collapse;text-align:center;"><thead><tr style="background:#eee;"><th>العامل</th><th>المستحق</th><th>التسبيقات</th><th>الصافي</th></tr></thead><tbody>`;
+        let html = `<div dir="rtl" style="font-family:Arial;padding:20px;">
+            <h2 align="center">كشف رواتب: ${document.getElementById('monthLabel').innerText}</h2>
+            <table border="1" width="100%" style="border-collapse:collapse;text-align:center;">
+                <thead><tr style="background:#eee;"><th>العامل</th><th>المستحق</th><th>التسبيقات</th><th>الصافي</th></tr></thead>
+                <tbody>`;
         appData.emps.forEach(e => {
             let total = 0, days = new Date(currDate.getFullYear(), currDate.getMonth()+1, 0).getDate();
             for(let d=1; d<=days; d++) {
@@ -218,11 +225,10 @@
             let adv = (appData.advances[mk]?.[e.id] || []).reduce((s,i)=>s+i.val, 0);
             html += `<tr><td>${e.name}</td><td>${Math.round(total)}</td><td>${adv}</td><td>${Math.round(total-adv)}</td></tr>`;
         });
-        html += `</tbody></table></div>`;
-        let win = window.open('', '', 'width=900,height=700');
-        win.document.write(html);
-        win.document.close();
-        win.print();
+        html += `</tbody></table><p style="text-align:left; font-size:10px;">تم الطباعة في: ${new Date().toLocaleString()}</p></div>`;
+        
+        document.getElementById('printArea').innerHTML = html;
+        window.print();
     }
 
     function openSettings() {
@@ -231,7 +237,7 @@
     }
     function addE() { let n=document.getElementById('newE').value, r=document.getElementById('newR').value; if(n&&r){appData.emps.push({id:Date.now(), name:n, rate:parseFloat(r)}); save(); openSettings(); } }
     function delE(id) { appData.emps=appData.emps.filter(e=>e.id!=id); save(); openSettings(); }
-    function updatePin() { let p=document.getElementById('p1').value; if(p.length==4){appData.pin=p; save(); alert("تم تحديث الرمز");} }
+    function updatePin() { let p=document.getElementById('p1').value; if(p.length==4){appData.pin=p; save(); alert("تم التحديث");} }
 
     function openAdvances() {
         let mk = `${currDate.getFullYear()}-${currDate.getMonth()}`; if(!appData.advances[mk]) appData.advances[mk]={};
