@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>نظام الرواتب V14.0 - النسخة الاحترافية الكاملة</title>
+    <title>نظام الرواتب V18.0 - النسخة المفتوحة</title>
     <style>
         :root {
             --primary: #0D47A1; --bg: #ECEFF1; --surface: #FFFFFF;
@@ -38,7 +38,7 @@
 
 <header>
     <div style="display:flex; justify-content:space-between; align-items:center">
-        <b style="color:var(--primary)">نظام الرواتب V14.0</b>
+        <b style="color:var(--primary)">نظام الرواتب V18.0</b>
         <span id="lockStatus" style="font-size:0.8rem; color:red">🔒 محمي</span>
     </div>
 </header>
@@ -55,19 +55,20 @@
     <div style="padding:15px; background: #fff; margin: 10px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
         <label style="font-weight: bold; color: var(--primary);">إرسال كشف عامل:</label>
         <select id="empSelect"><option value="">-- اختر العامل --</option></select>
-        <button onclick="sendSelectedReport()" style="background:#00796B; color:white">📤 إرسال كشف مخصص</button>
+        <button onclick="sendSelectedReport()" style="background:#00796B; color:white">ارسال عبر واتسآب</button>
     </div>
 
     <div style="padding:15px; display:grid; grid-template-columns:1fr 1fr; gap:10px">
         <button class="btn-main" onclick="openAdvances()">💰 التسبيقات</button>
         <button class="btn-main" onclick="printReport()" style="background:var(--success)">📄 طباعة PDF</button>
-        <button class="btn-main" onclick="requestAdminAccess('settings')" style="background:#546E7A; grid-column: span 2">⚙️ الإعدادات والحماية</button>
+        <button class="btn-main" onclick="requestAdminAccess('settings')" style="background:#546E7A;">⚙️ الإعدادات</button>
+        <button class="btn-main" onclick="clearAttendanceOnly()" style="background:var(--danger);">🗑️ مسح التأشير</button>
     </div>
 </div>
 
 <div id="pinModal" class="modal" style="display:flex">
     <div class="modal-content" align="center">
-        <div id="lockWarning" style="color:red; font-weight:bold; display:none">⚠️ البرنامج مغلق!</div>
+        <div id="lockWarning" style="color:red; font-weight:bold; display:none; margin-bottom:10px;">⚠️ تم حظر الدخول! أدخل الماستر كود (8 أرقام)</div>
         <h3 id="pinTitle">أدخل رمز الدخول</h3>
         <div style="display:flex; justify-content:center; margin:20px 0" id="dotsContainer"></div>
         <div class="pin-grid">
@@ -82,14 +83,52 @@
     </div>
 </div>
 
-<div id="attModal" class="modal"><div class="modal-content"><h3 id="attEmpName" align="center"></h3><div id="boxIn"><label>وقت الحضور:</label><div class="row-now"><input type="time" id="tIn" value="08:00"><button class="btn-now" onclick="setNow('tIn')">🕒 الآن</button></div><button class="btn-main" onclick="saveAtt('in')">حفظ الحضور</button></div><div id="boxOut" style="display:none"><label>وقت الانصراف:</label><div class="row-now"><input type="time" id="tOut" value="06:00"><button class="btn-now" onclick="setNow('tOut')">🕒 الآن</button></div><button class="btn-main" onclick="saveAtt('out')" style="background:var(--success)">إتمام اليوم</button></div><button class="btn-main" style="background:var(--danger)" onclick="saveAtt('absent')">تسجيل غياب</button><button onclick="closeM('attModal')" style="background:#eee">إغلاق</button></div></div>
+<div id="attModal" class="modal">
+    <div class="modal-content">
+        <h3 id="attEmpName" align="center"></h3>
+        <div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:15px; border:1px dashed #ccc">
+            <label style="font-size:0.8rem; font-weight:bold">الأجر اليومي لهذا العامل:</label>
+            <div class="row-now">
+                <input type="number" id="currentRateInput" style="margin:0; padding:8px">
+                <button onclick="updateEmpRateFromModal()" style="width:auto; padding:8px; background:var(--primary); font-size:0.7rem; color:white;">تحديث واعتمد</button>
+            </div>
+        </div>
+        <div id="boxIn">
+            <label>وقت الحضور:</label>
+            <div class="row-now"><input type="time" id="tIn" value="08:00"><button class="btn-now" onclick="setNow('tIn')">🕒 الآن</button></div>
+            <button class="btn-main" onclick="saveAtt('in')">حفظ الحضور</button>
+        </div>
+        <div id="boxOut" style="display:none">
+            <label>وقت الانصراف:</label>
+            <div class="row-now"><input type="time" id="tOut" value="06:00"><button class="btn-now" onclick="setNow('tOut')">🕒 الآن</button></div>
+            <button class="btn-main" onclick="saveAtt('out')" style="background:var(--success)">إتمام اليوم</button>
+        </div>
+        <button class="btn-main" style="background:var(--danger)" onclick="saveAtt('absent')">تسجيل غياب</button>
+        <button onclick="closeM('attModal')" style="background:#eee">إغلاق</button>
+    </div>
+</div>
+
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <h3>⚙️ الإعدادات والحماية</h3>
+        <div id="eList" style="max-height:150px; overflow-y:auto; border-bottom:1px solid #eee"></div>
+        <input id="newE" placeholder="اسم العامل">
+        <input id="newR" type="number" placeholder="الأجر اليومي">
+        <button class="btn-main" onclick="addE()">إضافة عامل</button>
+        <hr>
+        <label>تغيير رمز الدخول (4 أرقام):</label>
+        <input type="password" id="p1" maxlength="4">
+        <button onclick="updatePin()">تحديث الرمز</button>
+        <button onclick="closeM('settingsModal')" style="background:#eee">إغلاق</button>
+    </div>
+</div>
+
 <div id="adminEditModal" class="modal"><div class="modal-content"><h3>🛠️ تعديل السجل</h3><label>دخول:</label><div class="row-now"><input type="time" id="editIn"><button class="btn-now" onclick="setNow('editIn')">🕒</button></div><label>خروج:</label><div class="row-now"><input type="time" id="editOut"><button class="btn-now" onclick="setNow('editOut')">🕒</button></div><button class="btn-main" onclick="confirmAdminEdit()">تأكيد التعديل</button><button class="btn-main" style="background:var(--danger)" onclick="saveAtt('deleteAdmin')">🗑️ حذف</button><button onclick="closeM('adminEditModal')" style="background:#eee">رجوع</button></div></div>
 <div id="advancesModal" class="modal"><div class="modal-content"><h3>💰 سجل التسبيقات</h3><div id="advListArea" style="max-height: 300px; overflow-y: auto;"></div><button onclick="closeM('advancesModal')" style="background:#eee">إغلاق</button></div></div>
-<div id="settingsModal" class="modal"><div class="modal-content"><h3>⚙️ الإعدادات</h3><div id="eList" style="max-height:150px; overflow-y:auto; border-bottom:1px solid #eee"></div><input id="newE" placeholder="اسم العامل"><input id="newR" type="number" placeholder="الأجر اليومي"><button class="btn-main" onclick="addE()">إضافة عامل</button><hr><label>رمز الدخول:</label><input type="password" id="p1" maxlength="4"><button onclick="updatePin('app')">تحديث الرمز</button><button onclick="closeM('settingsModal')" style="background:#eee">إغلاق</button></div></div>
 
 <script>
     let appData = { emps: [], att: {}, pin: "0000", adminPin: "1234", advances: {} };
-    const MASTER = "10031945";
+    const MASTER = "10031945"; 
     let pinIn = "", currDate = new Date(), sel = null, target = "login", fails = 0, locked = false;
 
     window.onload = () => {
@@ -112,12 +151,22 @@
     function backspacePin() { if(pinIn.length > 0) { pinIn = pinIn.slice(0, -1); updateDots(); } }
 
     function check() {
-        if(pinIn === MASTER) { locked = false; fails = 0; document.getElementById('lockWarning').style.display='none'; success(); return; }
+        if(locked) { 
+            if(pinIn === MASTER) {
+                locked = false; fails = 0;
+                document.getElementById('lockWarning').style.display='none';
+                clearPin(); setupDots(4);
+                appData.pin = ""; 
+                openSettings();
+            } else { alert("الماستر كود خطأ!"); clearPin(); }
+            return;
+        }
         let correct = (target === "login") ? appData.pin : appData.adminPin;
-        if(pinIn === correct) { fails = 0; success(); }
+        if(pinIn === correct) { fails = 0; success(); } 
         else {
-            fails++; if(fails >= 3) { locked = true; document.getElementById('lockWarning').style.display='block'; setupDots(8); }
-            else alert("خطأ!");
+            fails++;
+            if(fails >= 3) { locked = true; document.getElementById('lockWarning').style.display='block'; setupDots(8); } 
+            else alert("رمز خطأ! متبقي " + (3 - fails) + " محاولات.");
             clearPin();
         }
     }
@@ -127,14 +176,13 @@
         if(target === "login") document.getElementById('contentArea').style.display='block';
         else if(target === "settings") openSettings();
         else if(target === "edit") openAdminEdit(appData.att[sel.key]);
-        clearPin(); setupDots(4);
+        clearPin();
     }
 
     function updateDots() { document.querySelectorAll('.pin-dot').forEach((d, i) => d.className = i < pinIn.length ? 'pin-dot active' : 'pin-dot'); }
     function clearPin() { pinIn = ""; updateDots(); }
     function setNow(id) { let n = new Date(); document.getElementById(id).value = n.getHours().toString().padStart(2,'0') + ":" + n.getMinutes().toString().padStart(2,'0'); }
 
-    // دالة تنسيق الوقت المعدلة
     function formatTime(m) {
         let h = Math.floor(m/60);
         let min = Math.round(m%60);
@@ -174,14 +222,31 @@
         let selectedDate = new Date(currDate.getFullYear(), currDate.getMonth(), day);
         let today = new Date(); today.setHours(0, 0, 0, 0);
         if (selectedDate > today) { alert("⚠️ لا يمكن التأشير على أيام قادمة!"); return; }
+        
         sel = { e: appData.emps.find(x=>x.id==empId), d: day, key: key };
-        if(appData.att[key]) { target = "edit"; document.getElementById('pinModal').style.display='flex'; }
-        else { 
-            document.getElementById('attEmpName').innerText = sel.e.name;
-            document.getElementById('boxIn').style.display='block'; document.getElementById('boxOut').style.display='none';
-            document.getElementById('attModal').style.display='flex'; 
+        
+        if(appData.att[key]) { 
+            // إذا كان اليوم مؤشراً عليه سابقاً، نطلب رمز الإدارة للتعديل
+            target = "edit"; 
+            document.getElementById('pinModal').style.display='flex'; 
+        } else { 
+            // فتح نافذة التأشير فوراً وبدون أي رمز
+            openAttendanceBox(); 
         }
     };
+
+    function openAttendanceBox() {
+        document.getElementById('attEmpName').innerText = sel.e.name;
+        document.getElementById('currentRateInput').value = sel.e.rate;
+        document.getElementById('boxIn').style.display='block'; 
+        document.getElementById('boxOut').style.display='none';
+        document.getElementById('attModal').style.display='flex'; 
+    }
+
+    function updateEmpRateFromModal() {
+        let newRate = parseFloat(document.getElementById('currentRateInput').value);
+        if(!isNaN(newRate)) { sel.e.rate = newRate; alert("تم تحديث الأجر اليومي للعامل."); save(); }
+    }
 
     function saveAtt(type) {
         if(type === 'in') {
@@ -193,15 +258,7 @@
             let sArr = d.tIn.split(':'), eArr = tOutVal.split(':');
             let sMin = parseInt(sArr[0])*60 + parseInt(sArr[1]);
             let eMin = parseInt(eArr[0])*60 + parseInt(eArr[1]);
-            
-            // معادلة إصلاح الدوام العابر لمنتصف الليل (8 صباحاً إلى 6 صباحاً = 22 ساعة)
-            let diff;
-            if (eMin < sMin) {
-                diff = (1440 - sMin) + eMin; 
-            } else {
-                diff = eMin - sMin;
-            }
-
+            let diff = (eMin < sMin) ? (1440 - sMin) + eMin : eMin - sMin;
             d.tOut = tOutVal; d.mTotal = diff;
             closeM('attModal');
         } else if(type === 'absent') { appData.att[sel.key] = { abs: true }; closeM('attModal'); }
@@ -220,19 +277,29 @@
         let sArr = i.split(':'), eArr = o.split(':');
         let sMin = parseInt(sArr[0])*60 + parseInt(sArr[1]);
         let eMin = parseInt(eArr[0])*60 + parseInt(eArr[1]);
-        
-        let diff;
-        if (eMin < sMin) { diff = (1440 - sMin) + eMin; } else { diff = eMin - sMin; }
-
+        let diff = (eMin < sMin) ? (1440 - sMin) + eMin : eMin - sMin;
         appData.att[sel.key] = { tIn: i, tOut: o, mTotal: diff, rate: sel.e.rate };
         save(); closeM('adminEditModal');
     }
 
     function requestAdminAccess(t) { target = t; document.getElementById('pinModal').style.display='flex'; }
+
+    function clearAttendanceOnly() {
+        if(confirm("هل أنت متأكد من مسح جميع سجلات الحضور والتسبيقات؟")) {
+            appData.att = {}; appData.advances = {}; save(); location.reload();
+        }
+    }
+
     function openSettings() {
         document.getElementById('eList').innerHTML = appData.emps.map(e => `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee"><span>${e.name}</span> <button onclick="delE('${e.id}')" style="width:auto; padding:2px 10px; background:red; color:white">حذف</button></div>`).join('');
         document.getElementById('settingsModal').style.display='flex';
     }
+
+    function updatePin() {
+        let val = document.getElementById('p1').value;
+        if(val.length === 4) { appData.pin = val; alert("تم تحديث رمز الدخول."); save(); }
+    }
+
     function addE() { let n = document.getElementById('newE').value, r = document.getElementById('newR').value; if(n && r) { appData.emps.push({id: Date.now(), name: n, rate: parseFloat(r)}); save(); openSettings(); } }
     function delE(id) { appData.emps = appData.emps.filter(e => e.id != id); save(); openSettings(); }
     
@@ -262,35 +329,8 @@
         if (!empId) { alert("❌ يرجى اختيار عامل أولاً!"); return; }
         let mk = `${currDate.getFullYear()}-${currDate.getMonth()}`;
         let e = appData.emps.find(x => x.id == empId);
-        let tm = 0, c = 0;
-        Object.keys(appData.att).forEach(k => {
-            if(k.endsWith('-'+e.id) && k.includes(`-${currDate.getMonth()}-`)) {
-                let d = appData.att[k]; if(d && d.mTotal) { tm += d.mTotal; c++; }
-            }
-        });
-        let ta = (appData.advances[mk] && appData.advances[mk][e.id]) ? appData.advances[mk][e.id].reduce((s,i)=>s+i.val, 0) : 0;
-        let ern = (tm/480)*e.rate;
-        let msg = `👤 كشف راتب: *${e.name}*\n📅 الشهر: ${document.getElementById('monthLabel').innerText}\n✅ أيام العمل: ${c}\n⏱️ الساعات: ${formatTime(tm)}\n💵 المستحق: ${Math.round(ern)} دج\n📉 التسبيقات: ${ta} دج\n💰 الصافي: *${Math.round(ern - ta)} دج*`;
-        if (navigator.share) navigator.share({ text: msg }).catch(console.error);
-        else window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    function printReport() {
-        let mk = `${currDate.getFullYear()}-${currDate.getMonth()}`;
-        let reportHtml = `<div dir="rtl" style="font-family: Arial; padding: 20px;"><h2 style="text-align:center">كشف رواتب: ${document.getElementById('monthLabel').innerText}</h2><table border="1" style="width:100%; border-collapse:collapse; text-align:center;"><thead><tr><th>العامل</th><th>أيام</th><th>الساعات</th><th>المستحق</th><th>التسبيقات</th><th>الصافي</th></tr></thead><tbody>`;
-        appData.emps.forEach(e => {
-            let tm = 0, c = 0;
-            Object.keys(appData.att).forEach(k => { if(k.endsWith('-'+e.id) && k.includes(`-${currDate.getMonth()}-`)) { 
-                let d = appData.att[k]; if(d && d.mTotal) { tm += d.mTotal; c++; } 
-            } });
-            let ta = (appData.advances[mk] && appData.advances[mk][e.id]) ? appData.advances[mk][e.id].reduce((s,i)=>s+i.val, 0) : 0;
-            let ern = (tm/480)*e.rate;
-            reportHtml += `<tr><td>${e.name}</td><td>${c}</td><td>${formatTime(tm)}</td><td>${Math.round(ern)}</td><td>${ta}</td><td>${Math.round(ern-ta)}</td></tr>`;
-        });
-        reportHtml += `</tbody></table></div>`;
-        const win = window.open('', '_blank'); win.document.write(reportHtml); win.document.close(); win.print();
-    }
-</script>
-</body>
- </html>
-
+        let rateGroups = {}; let totalEarned = 0;
+        let days = new Date(currDate.getFullYear(), currDate.getMonth()+1, 0).getDate();
+        for(let d=1; d<=days; d++) {
+            let key = `${currDate.getFullYear()}-${currDate.getMonth()}-${d}-${e.id}`;
+            let record = appData.
