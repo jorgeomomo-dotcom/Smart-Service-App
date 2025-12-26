@@ -1,10 +1,9 @@
- 
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>نظام الرواتب V19.0</title>
+    <title>نظام الرواتب V19.5 - نسخة استعادة الدخول</title>
     <style>
         :root {
             --primary: #0D47A1; --bg: #ECEFF1; --surface: #FFFFFF;
@@ -39,7 +38,7 @@
 
 <header>
     <div style="display:flex; justify-content:space-between; align-items:center">
-        <b style="color:var(--primary)">نظام الرواتب V19.0</b>
+        <b style="color:var(--primary)">نظام الرواتب V19.5</b>
         <span id="lockStatus" style="font-size:0.8rem; color:red">🔒 محمي</span>
     </div>
 </header>
@@ -135,9 +134,13 @@
     window.onload = () => {
         const saved = localStorage.getItem('salary_v13_offline');
         if(saved) {
-            let parsed = JSON.parse(saved);
-            if(!parsed.pin) parsed.pin = "0000";
-            appData = parsed;
+            try {
+                let parsed = JSON.parse(saved);
+                if(!parsed.pin) parsed.pin = "0000";
+                appData = parsed;
+            } catch(e) {
+                console.log("Error loading data, using defaults");
+            }
         }
         setupDots(4);
         render();
@@ -161,8 +164,10 @@
                 locked = false; fails = 0;
                 document.getElementById('lockWarning').style.display='none';
                 clearPin(); setupDots(4);
-                appData.pin = ""; 
-                openSettings();
+                appData.pin = "0000"; // إعادة تعيين الرمز للافتراضي عند استخدام الماستر كود
+                save();
+                document.getElementById('contentArea').style.display='block';
+                document.getElementById('pinModal').style.display = 'none';
             } else { alert("الماستر كود خطأ!"); clearPin(); }
             return;
         }
@@ -229,12 +234,8 @@
         let today = new Date(); today.setHours(0, 0, 0, 0);
         if (selectedDate > today) { alert("⚠️ لا يمكن التأشير على أيام قادمة!"); return; }
         sel = { e: appData.emps.find(x=>x.id==empId), d: day, key: key };
-        if(appData.att[key]) { 
-            // التعديل المباشر للسجلات دون طلب رمز الإدارة
-            openAdminEdit(appData.att[key]);
-        } else { 
-            openAttendanceBox(); 
-        }
+        if(appData.att[key]) { openAdminEdit(appData.att[key]); } 
+        else { openAttendanceBox(); }
     };
 
     function openAttendanceBox() {
@@ -285,7 +286,7 @@
     }
 
     function clearAttendanceOnly() {
-        if(confirm("هل أنت متأكد من مسح جميع سجلات الحضور والتسبيقات؟")) {
+        if(confirm("هل أنت متأكد من مسح سجلات الحضور؟")) {
             appData.att = {}; appData.advances = {}; save(); location.reload();
         }
     }
@@ -297,8 +298,7 @@
 
     function updatePin() {
         let val = document.getElementById('p1').value;
-        if(val.length === 4) { appData.pin = val; alert("تم تحديث رمز الدخول بنجاح."); save(); }
-        else alert("يجب أن يتكون الرمز من 4 أرقام.");
+        if(val.length === 4) { appData.pin = val; alert("تم تحديث الرمز."); save(); }
     }
 
     function addE() { let n = document.getElementById('newE').value, r = document.getElementById('newR').value; if(n && r) { appData.emps.push({id: Date.now(), name: n, rate: parseFloat(r)}); save(); openSettings(); } }
@@ -335,7 +335,4 @@
         for(let d=1; d<=days; d++) {
             let key = `${currDate.getFullYear()}-${currDate.getMonth()}-${d}-${e.id}`;
             let record = appData.att[key];
-            if(record && record.mTotal) {
-                let r = record.rate || e.rate;
-                if(!rateGroups[r]) rateGroups[r] = { mins: 0, days: 0 };
-                rateGroups[r].mins += record.mTo
+            if(record 
